@@ -4,6 +4,7 @@ from collections import deque
 from Node import Nodo
 import time
 import random
+import subprocess
 
 # Definir el laberinto predefinido
 maze = [
@@ -265,17 +266,25 @@ def pintar_nodos_y_aristas(padre, hijos):
     time.sleep(1)  # Pausa de 1 segundo entre cada movimiento
 
 def initialize_maze_canvas():
+    global mouse_position, wall_count, place_mouse, place_cheese
+
     for row in range(len(maze)):
         for col in range(len(maze[0])):
             value = maze[row][col]
             color = 'white'
             if value == 1:
                 color = 'black'
+                wall_count += 1
             elif value == 2:
                 color = 'yellow'
+                place_cheese = False
             elif value == 3:
                 color = 'red'
+                mouse_position = (row, col)
+                place_mouse = False
             update_cell(row, col, color)
+
+    update_controls()
 
 def set_place_mode(mode):
     global place_mouse, place_wall, place_cheese
@@ -283,11 +292,30 @@ def set_place_mode(mode):
     place_wall = (mode == 'wall')
     place_cheese = (mode == 'cheese')
 
+def export_tree_as_image():
+    # Obtener el área del canvas que contiene el árbol
+    x0, y0, x1, y1 = search_canvas.bbox("all")
+    # Crear una imagen en blanco con el tamaño del área del canvas
+    image = Image.new("RGB", (x1 - x0, y1 - y0), "white")
+    # Dibujar el contenido del canvas en la imagen
+    ps_file = "/Users/juanhoyos/Desktop/tree.ps"
+    png_file = "/Users/juanhoyos/Desktop/tree.png"
+    search_canvas.postscript(file=ps_file, colormode='color')
+    
+    # Convertir el archivo PostScript a PNG usando Ghostscript
+    try:
+        subprocess.run(["gs", "-sDEVICE=pngalpha", "-o", png_file, "-r144", ps_file], check=True)
+        print("Árbol exportado como tree.png")
+    except subprocess.CalledProcessError as e:
+        print(f"Error al ejecutar Ghostscript: {e}")
+    except Exception as e:
+        print(f"Error: {e}")
+
 # Configuración de la interfaz gráfica
 root = tk.Tk()
 root.title("Laberinto")
 
-cell_size = 100  # Tamaño de la celda en píxeles
+cell_size = 70  # Tamaño de la celda en píxeles
 
 # Canvas para el laberinto
 maze_canvas = tk.Canvas(root, width=cell_size*len(maze[0]), height=cell_size*len(maze), bg='white')
@@ -297,7 +325,7 @@ maze_canvas.grid(row=1, column=1, padx=10, pady=10)
 search_frame = tk.Frame(root)
 search_frame.grid(row=1, column=0, padx=100, pady=100)
 
-search_canvas = tk.Canvas(search_frame, width=400, height=400, bg='white')
+search_canvas = tk.Canvas(search_frame, width=650, height=650, bg='white')
 search_canvas.pack(side=tk.LEFT)
 
 scrollbar = tk.Scrollbar(search_frame, orient=tk.VERTICAL, command=search_canvas.yview)
@@ -337,6 +365,9 @@ place_wall_button.grid(row=4, column=1, padx=5, pady=5)
 
 place_cheese_button = tk.Button(frame_controls, text="Colocar Queso", command=lambda: set_place_mode('cheese'))
 place_cheese_button.grid(row=5, column=0, columnspan=2, padx=5, pady=5)
+
+export_button = tk.Button(frame_controls, text="Exportar Árbol", command=export_tree_as_image)
+export_button.grid(row=6, column=0, columnspan=2, padx=5, pady=5)
 
 initialize_maze_canvas()
 maze_canvas.bind("<Button-1>", on_click)
