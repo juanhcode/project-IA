@@ -3,13 +3,14 @@ from PIL import Image, ImageTk
 from collections import deque
 from Node import Nodo
 import time
+import random
 
 # Definir el laberinto predefinido
 maze = [
     [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0]
+    [0, 1, 1, 2],
+    [3, 1, 0, 0],
+    [0, 0, 0, 1]
 ]
 
 
@@ -72,6 +73,67 @@ def busquedaPorAmplitud(matriz, estado_inicial, limite_expansiones=2):
         print("expansiones", expansions)
     return "No Encontrado"
 
+
+def busquedaEnProfundidad(matriz, estado_inicial, limite_expansiones=2):
+    print("Ejecutando búsqueda en profundidad")
+    stack = deque()
+    stack.append(Nodo(estado_inicial, None, None, matriz[estado_inicial[0]][estado_inicial[1]]))
+    expansions = 0
+
+    while stack and expansions < limite_expansiones:
+        node = stack.pop()
+        print("Padre", node)
+        fila, columna = node.estado
+
+        if node.valor == 2:
+            print("Encontrado")
+            break
+
+        # Expandir
+        hijos = []
+        for movimiento, (df, dc) in {
+            "izquierda": (0, -1),
+            "arriba": (-1, 0),
+            "derecha": (0, 1),
+            "abajo": (1, 0)
+        }.items():
+            nuevo_fila, nuevo_columna = fila + df, columna + dc
+            if 0 <= nuevo_fila < len(matriz) and 0 <= nuevo_columna < len(matriz[0]):
+                if matriz[nuevo_fila][nuevo_columna] != 1:
+                    expansions += 1
+                    nuevo_nodo = Nodo((nuevo_fila, nuevo_columna), node, movimiento, matriz[nuevo_fila][nuevo_columna])
+                    print("nuevo nodo", nuevo_nodo)
+                    stack.append(nuevo_nodo)
+                    hijos.append(nuevo_nodo)
+
+        pintar_nodos_y_aristas(node, hijos)
+        root.update()
+        time.sleep(1)  # Esperar 1 segundo antes de continuar
+
+    if expansions >= limite_expansiones:
+        print("Límite de expansiones alcanzado")
+        print("expansiones", expansions)
+    else:
+        print("expansiones", expansions)
+    return "No Encontrado"
+
+
+def busquedaPorCostoUniforme(matriz, estado_inicial, limite_expansiones=2):
+    print("Ejecutando búsqueda por costo uniforme")
+    pass
+
+def busquedaLimitadaPorProfundidad(matriz, estado_inicial, limite_expansiones=2):
+    print("Ejecutando búsqueda limitada por profundidad")
+    pass
+
+def busquedaProfundidadIterativa(matriz, estado_inicial, limite_expansiones=2):
+    print("Ejecutando búsqueda en profundidad iterativa")
+    pass
+
+def busquedaAvara(matriz, estado_inicial, limite_expansiones=2):
+    print("Ejecutando búsqueda avara")
+    pass
+
 def on_click(event):
     global place_mouse, place_wall, place_cheese, mouse_position, wall_count
     
@@ -81,8 +143,9 @@ def on_click(event):
     if place_mouse:
         if mouse_position:
             update_cell(mouse_position[0], mouse_position[1], 'white')
+            maze[mouse_position[0]][mouse_position[1]] = 0  # Reset previous mouse position
         mouse_position = (row, column)
-        update_cell(row, column, 'red', mouse_image)  # Mostrar la imagen del ratón
+        update_cell(row, column, None, mouse_image)  # No pasamos un color, solo la imagen del ratón
         maze[row][column] = 3
         place_mouse = False
         update_controls()
@@ -119,43 +182,67 @@ def update_cell(row, column, color, image=None):
     y1 = row * cell_size
     x2 = (column + 1) * cell_size
     y2 = (row + 1) * cell_size
-    
-    # Borrar el contenido actual de la celda
-    maze_canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline='black')
-    
+
+    # Si se proporciona un color, se pinta la celda
+    if color:
+        maze_canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline='black') 
     # Dibujar la imagen si se proporciona
     if image:
-        # Redimensionar la imagen para que se ajuste a la celda
         image_resized = image.resize((cell_size, cell_size), Image.LANCZOS)
         image_tk = ImageTk.PhotoImage(image_resized)
         maze_canvas.create_image(x1, y1, anchor='nw', image=image_tk)
         # Necesario para mantener la referencia de la imagen en memoria
         maze_canvas.image = image_tk
 
+##Lista de funciones de búsqueda disponibles
+busquedas = [busquedaPorAmplitud, busquedaEnProfundidad]
+busquedas_realizadas = []
+
 def iniciar_busqueda():
+    global busquedas_realizadas
+
+    if len(busquedas_realizadas) == len(busquedas):
+        print("Todas las búsquedas han sido realizadas")
+        return
+
     limite_expansiones = int(expansions_entry.get())
     if mouse_position:
-        busquedaPorAmplitud(maze, mouse_position, limite_expansiones)
+        # Seleccionar una búsqueda al azar que no haya sido realizada
+        busqueda = random.choice([b for b in busquedas if b not in busquedas_realizadas])
+        busquedas_realizadas.append(busqueda)
+        busqueda(maze, mouse_position, limite_expansiones)
     else:
         print("No se ha colocado el ratón")
 
+# def iniciar_busqueda():
+#     limite_expansiones = int(expansions_entry.get())
+#     if mouse_position:
+#         busquedaEnProfundidad(maze, mouse_position, limite_expansiones)
+#     else:
+#         print("No se ha colocado el ratón")
+
 def pintar_nodos_y_aristas(padre, hijos):
-    global level
+    global level, mouse_position
+
+    # Borrar la imagen del ratón de la celda actual
+    if mouse_position:
+        update_cell(mouse_position[0], mouse_position[1], 'white')
+
+    # Mover el ratón a la nueva posición
+    fila, columna = padre.estado
+    update_cell(fila, columna, None, mouse_image)  # Usar la imagen del ratón
+    mouse_position = (fila, columna)
+
+    # Dibujar las aristas en el canvas de búsqueda
     if padre.estado not in x_positions:
         x_positions[padre.estado] = 200
-        y_positions[padre.estado] = 50 + level * 100
+        y_positions[padre.estado] = 50 + level * 150  # Aumentar la distancia vertical entre niveles
 
     x1, y1 = x_positions[padre.estado], y_positions[padre.estado]
     search_canvas.create_oval(x1 - 15, y1 - 15, x1 + 15, y1 + 15, fill="blue")
     search_canvas.create_text(x1, y1, text=str(padre.estado), fill="white")
 
-    fila, columna = padre.estado
-    maze_canvas.create_rectangle(
-        columna * cell_size, fila * cell_size,
-        (columna + 1) * cell_size, (fila + 1) * cell_size,
-        fill="blue", outline='black'  # Borde negro
-    )
-
+    # Dibujar hijos y sus aristas
     espacio_horiz = 200
     if len(hijos) > 1:
         espacio_horiz = 200 // len(hijos)
@@ -164,22 +251,18 @@ def pintar_nodos_y_aristas(padre, hijos):
 
     for i, hijo in enumerate(hijos):
         x_positions[hijo.estado] = start_x + i * espacio_horiz
-        y_positions[hijo.estado] = y1 + 100
+        y_positions[hijo.estado] = y1 + 150  # Aumentar la distancia vertical entre niveles
 
         x2, y2 = x_positions[hijo.estado], y_positions[hijo.estado]
-        search_canvas.create_oval(x2 - 15, y2 - 15, x2 + 15, y2 + 15, fill="red")
+        search_canvas.create_oval(x2 - 15, y2 - 15, x2 + 15, y2 + 15, fill="purple")
         search_canvas.create_text(x2, y2, text=str(hijo.estado), fill="white")
-
-        fila, columna = hijo.estado
-        maze_canvas.create_rectangle(
-            columna * cell_size, fila * cell_size,
-            (columna + 1) * cell_size, (fila + 1) * cell_size,
-            fill="red", outline='black'  # Borde negro
-        )
-
         search_canvas.create_line(x1, y1, x2, y2, fill="black")
 
+    # Ajustar el scroll region del canvas
+    search_canvas.config(scrollregion=search_canvas.bbox("all"))
+
     root.update()
+    time.sleep(1)  # Pausa de 1 segundo entre cada movimiento
 
 def initialize_maze_canvas():
     for row in range(len(maze)):
@@ -204,15 +287,31 @@ def set_place_mode(mode):
 root = tk.Tk()
 root.title("Laberinto")
 
-cell_size = 50  # Tamaño de la celda en píxeles
+cell_size = 100  # Tamaño de la celda en píxeles
 
 # Canvas para el laberinto
 maze_canvas = tk.Canvas(root, width=cell_size*len(maze[0]), height=cell_size*len(maze), bg='white')
 maze_canvas.grid(row=1, column=1, padx=10, pady=10)
 
-# Canvas para el árbol de búsqueda
-search_canvas = tk.Canvas(root, width=400, height=400, bg='white')
-search_canvas.grid(row=1, column=0, padx=10, pady=10)
+# Frame y canvas para el árbol de búsqueda con scroll
+search_frame = tk.Frame(root)
+search_frame.grid(row=1, column=0, padx=100, pady=100)
+
+search_canvas = tk.Canvas(search_frame, width=400, height=400, bg='white')
+search_canvas.pack(side=tk.LEFT)
+
+scrollbar = tk.Scrollbar(search_frame, orient=tk.VERTICAL, command=search_canvas.yview)
+scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+search_canvas.config(yscrollcommand=scrollbar.set)
+
+# Añadir el scrollbar horizontal debajo del canvas
+scrollbar_horizontal = tk.Scrollbar(search_frame, orient=tk.HORIZONTAL, command=search_canvas.xview)
+scrollbar_horizontal.pack(side=tk.BOTTOM, fill=tk.X)
+
+search_canvas.config(xscrollcommand=scrollbar_horizontal.set)
+
+search_canvas.config(yscrollcommand=scrollbar.set)
 
 # Cargar la imagen del ratón
 mouse_image = Image.open('raton.png')  # Asegúrate de usar una ruta válida
