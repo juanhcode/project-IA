@@ -317,29 +317,29 @@ root.title("Laberinto")
 
 cell_size = 70  # Tamaño de la celda en píxeles
 
-# Canvas para el laberinto
+# Canvas para el laberinto sin scrollbar
 maze_canvas = tk.Canvas(root, width=cell_size*len(maze[0]), height=cell_size*len(maze), bg='white')
 maze_canvas.grid(row=1, column=1, padx=10, pady=10)
 
 # Frame y canvas para el árbol de búsqueda con scroll
 search_frame = tk.Frame(root)
-search_frame.grid(row=1, column=0, padx=100, pady=100)
+search_frame.grid(row=1, column=0, padx=10, pady=10)
 
 search_canvas = tk.Canvas(search_frame, width=650, height=650, bg='white')
-search_canvas.pack(side=tk.LEFT)
+search_canvas.grid(row=0, column=0)
 
+# Scrollbar vertical
 scrollbar = tk.Scrollbar(search_frame, orient=tk.VERTICAL, command=search_canvas.yview)
-scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+scrollbar.grid(row=0, column=1, sticky='ns')
 
 search_canvas.config(yscrollcommand=scrollbar.set)
 
-# Añadir el scrollbar horizontal debajo del canvas
-scrollbar_horizontal = tk.Scrollbar(search_frame, orient=tk.HORIZONTAL, command=search_canvas.xview)
-scrollbar_horizontal.pack(side=tk.BOTTOM, fill=tk.X)
+# Scrollbar horizontal
+scrollbar_x = tk.Scrollbar(search_frame, orient=tk.HORIZONTAL, command=search_canvas.xview)
+scrollbar_x.grid(row=1, column=0, sticky='ew')
 
-search_canvas.config(xscrollcommand=scrollbar_horizontal.set)
+search_canvas.config(xscrollcommand=scrollbar_x.set)
 
-search_canvas.config(yscrollcommand=scrollbar.set)
 
 # Cargar la imagen del ratón
 mouse_image = Image.open('raton.png')  # Asegúrate de usar una ruta válida
