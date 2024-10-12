@@ -5,14 +5,10 @@ from Node import Nodo
 import time
 import random
 import subprocess
+import numpy as np
 
 # Definir el laberinto predefinido
-maze = [
-    [0, 0, 0, 0],
-    [0, 1, 1, 2],
-    [3, 1, 0, 0],
-    [0, 0, 0, 1]
-]
+maze = np.zeros((3, 3))
 
 
 estado = None
@@ -265,8 +261,19 @@ def pintar_nodos_y_aristas(padre, hijos):
     root.update()
     time.sleep(1)  # Pausa de 1 segundo entre cada movimiento
 
-def initialize_maze_canvas():
-    global mouse_position, wall_count, place_mouse, place_cheese
+def initialize_maze_canvas(rows=None, columns=None):
+    global maze, mouse_position, wall_count, place_mouse, place_cheese
+
+    if rows and columns:
+        maze = [[0 for _ in range(columns)] for _ in range(rows)]
+    
+    mouse_position = None
+    wall_count = 0
+    place_mouse = False
+    place_cheese = False
+
+    maze_canvas.config(width=cell_size*len(maze[0]), height=cell_size*len(maze))
+    maze_canvas.delete("all")
 
     for row in range(len(maze)):
         for col in range(len(maze[0])):
@@ -285,6 +292,9 @@ def initialize_maze_canvas():
             update_cell(row, col, color)
 
     update_controls()
+
+def generate_maze(rows, columns):
+    initialize_maze_canvas(rows, columns)
 
 def set_place_mode(mode):
     global place_mouse, place_wall, place_cheese
@@ -340,13 +350,29 @@ scrollbar_x.grid(row=1, column=0, sticky='ew')
 
 search_canvas.config(xscrollcommand=scrollbar_x.set)
 
-
 # Cargar la imagen del ratón
 mouse_image = Image.open('raton.png')  # Asegúrate de usar una ruta válida
 
 # Configuración de controles
 frame_controls = tk.Frame(root)
 frame_controls.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+
+# Agregar entradas para filas y columnas
+rows_label = tk.Label(frame_controls, text="Filas:")
+rows_label.grid(row=0, column=0, padx=5, pady=5)
+
+rows_entry = tk.Entry(frame_controls)
+rows_entry.grid(row=0, column=1, padx=5, pady=5)
+
+columns_label = tk.Label(frame_controls, text="Columnas:")
+columns_label.grid(row=1, column=0, padx=5, pady=5)
+
+columns_entry = tk.Entry(frame_controls)
+columns_entry.grid(row=1, column=1, padx=5, pady=5)
+
+# Botón para generar el laberinto
+generate_maze_button = tk.Button(frame_controls, text="Generar Laberinto", command=lambda: generate_maze(int(rows_entry.get()), int(columns_entry.get())))
+generate_maze_button.grid(row=3, column=1, columnspan=2, padx=5, pady=5)
 
 expansions_label = tk.Label(frame_controls, text="Límite de Expansiones:")
 expansions_label.grid(row=2, column=0, padx=5, pady=5)
@@ -355,7 +381,7 @@ expansions_entry = tk.Entry(frame_controls)
 expansions_entry.grid(row=2, column=1, padx=5, pady=5)
 
 start_button = tk.Button(frame_controls, text="Iniciar", command=iniciar_busqueda, state='disabled')
-start_button.grid(row=3, column=0, columnspan=2, padx=5, pady=5)
+start_button.grid(row=3, column=0, padx=5, pady=5)
 
 place_mouse_button = tk.Button(frame_controls, text="Colocar Ratón", command=lambda: set_place_mode('mouse'))
 place_mouse_button.grid(row=4, column=0, padx=5, pady=5)
@@ -365,9 +391,6 @@ place_wall_button.grid(row=4, column=1, padx=5, pady=5)
 
 place_cheese_button = tk.Button(frame_controls, text="Colocar Queso", command=lambda: set_place_mode('cheese'))
 place_cheese_button.grid(row=5, column=0, columnspan=2, padx=5, pady=5)
-
-export_button = tk.Button(frame_controls, text="Exportar Árbol", command=export_tree_as_image)
-export_button.grid(row=6, column=0, columnspan=2, padx=5, pady=5)
 
 initialize_maze_canvas()
 maze_canvas.bind("<Button-1>", on_click)
