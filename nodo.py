@@ -6,6 +6,7 @@ import time
 import random
 import subprocess
 import numpy as np
+import heapq
 
 # Definir el laberinto predefinido
 maze = np.zeros((3, 3))
@@ -14,9 +15,8 @@ maze = np.zeros((3, 3))
 estado = None
 mouse_position = None
 wall_count = 0
-place_mouse = False
 place_wall = False
-place_cheese = False
+expanded_nodes = []
 
 # Variables globales para el dibujo del árbol
 x_positions = {}
@@ -31,11 +31,12 @@ def busquedaPorAmplitud(matriz, estado_inicial, limite_expansiones=2):
     print("estado inicial", estado_inicial)
     cola = deque()
     cola.append(Nodo(estado_inicial, None, None, matriz[estado_inicial[0]][estado_inicial[1]]))
-    expansions = 0
 
-    while cola and expansions < limite_expansiones:
+    while cola and len(expanded_nodes) < limite_expansiones:
         node = cola.popleft()
         print("Padre", node)
+        expanded_nodes.append(node)
+        print(len(expanded_nodes))
         fila, columna = node.estado
 
         if node.valor == 2:
@@ -46,14 +47,14 @@ def busquedaPorAmplitud(matriz, estado_inicial, limite_expansiones=2):
         hijos = []
         for movimiento, (df, dc) in {
             "arriba": (-1, 0),
+            "derecha": (0, 1),
             "abajo": (1, 0),
-            "izquierda": (0, -1),
-            "derecha": (0, 1)
+            "izquierda": (0, -1)
+            
         }.items():
             nuevo_fila, nuevo_columna = fila + df, columna + dc
             if 0 <= nuevo_fila < len(matriz) and 0 <= nuevo_columna < len(matriz[0]):
                 if matriz[nuevo_fila][nuevo_columna] != 1:
-                    expansions += 1
                     nuevo_nodo = Nodo((nuevo_fila, nuevo_columna), node, movimiento, matriz[nuevo_fila][nuevo_columna])
                     print("nuevo nodo", nuevo_nodo)
                     cola.append(nuevo_nodo)
@@ -63,24 +64,25 @@ def busquedaPorAmplitud(matriz, estado_inicial, limite_expansiones=2):
         root.update()
         time.sleep(1)  # Esperar 1 segundo antes de continuar
 
-    if expansions >= limite_expansiones:
+    if len(expanded_nodes) >= limite_expansiones:
         print("Límite de expansiones alcanzado")
-        print("expansiones", expansions)
+        print("expansiones", len(expanded_nodes))
+        expanded_nodes.clear()
     else:
-        print("expansiones", expansions)
+        print("expansiones", len(expanded_nodes))
     return "No Encontrado"
 
 
 def busquedaEnProfundidad(matriz, estado_inicial, limite_expansiones=2):
     print("Ejecutando búsqueda en profundidad")
-    stack = deque()
+    stack = []
     stack.append(Nodo(estado_inicial, None, None, matriz[estado_inicial[0]][estado_inicial[1]]))
-    expansions = 0
 
-    while stack and expansions < limite_expansiones:
+    while stack and len(expanded_nodes) < limite_expansiones:
         node = stack.pop()
         print("Padre", node)
         fila, columna = node.estado
+        expanded_nodes.append(node)
 
         if node.valor == 2:
             print("Encontrado")
@@ -89,15 +91,14 @@ def busquedaEnProfundidad(matriz, estado_inicial, limite_expansiones=2):
         # Expandir
         hijos = []
         for movimiento, (df, dc) in {
-            "izquierda": (0, -1),
             "arriba": (-1, 0),
             "derecha": (0, 1),
-            "abajo": (1, 0)
+            "abajo": (1, 0),
+            "izquierda": (0, -1),
         }.items():
             nuevo_fila, nuevo_columna = fila + df, columna + dc
             if 0 <= nuevo_fila < len(matriz) and 0 <= nuevo_columna < len(matriz[0]):
                 if matriz[nuevo_fila][nuevo_columna] != 1:
-                    expansions += 1
                     nuevo_nodo = Nodo((nuevo_fila, nuevo_columna), node, movimiento, matriz[nuevo_fila][nuevo_columna])
                     print("nuevo nodo", nuevo_nodo)
                     stack.append(nuevo_nodo)
@@ -107,17 +108,58 @@ def busquedaEnProfundidad(matriz, estado_inicial, limite_expansiones=2):
         root.update()
         time.sleep(1)  # Esperar 1 segundo antes de continuar
 
-    if expansions >= limite_expansiones:
+    if len(expanded_nodes) >= limite_expansiones:
         print("Límite de expansiones alcanzado")
-        print("expansiones", expansions)
+        print("expansiones", len(expanded_nodes))
+        expanded_nodes.clear()
     else:
-        print("expansiones", expansions)
+        print("expansiones", len(expanded_nodes))
     return "No Encontrado"
 
-
+#Busqueda por costo uniforme
 def busquedaPorCostoUniforme(matriz, estado_inicial, limite_expansiones=2):
     print("Ejecutando búsqueda por costo uniforme")
-    pass
+    stack = []
+    heapq.heappush(stack, (0, Nodo(estado_inicial, None, None, matriz[estado_inicial[0]][estado_inicial[1]])))
+
+    while stack and len(expanded_nodes) < limite_expansiones:
+        cost, node = heapq.heappop(stack)
+        print("costo", cost)
+        print("Padre", node)
+        fila, columna = node.estado
+        expanded_nodes.append(node)
+
+        if node.valor == 2:
+            print("Encontrado")
+            break
+
+        # Expandir
+        hijos = []
+        for movimiento, (df, dc) in {
+            "arriba": (-1, 0),
+            "derecha": (0, 1),
+            "abajo": (1, 0),
+            "izquierda": (0, -1),
+        }.items():
+            nuevo_fila, nuevo_columna = fila + df, columna + dc
+            if 0 <= nuevo_fila < len(matriz) and 0 <= nuevo_columna < len(matriz[0]):
+                if matriz[nuevo_fila][nuevo_columna] != 1:
+                    nuevo_nodo = Nodo((nuevo_fila, nuevo_columna), node, movimiento, matriz[nuevo_fila][nuevo_columna])
+                    print("nuevo nodo", nuevo_nodo)
+                    heapq.heappush(stack, (cost + 1, nuevo_nodo))
+                    hijos.append(nuevo_nodo)
+
+        pintar_nodos_y_aristas(node, hijos)
+        root.update()
+        time.sleep(1)  # Esperar 1 segundo antes de continuar
+
+    if len(expanded_nodes) >= limite_expansiones:
+        print("Límite de expansiones alcanzado")
+        print("expansiones", len(expanded_nodes))
+        expanded_nodes.clear()
+    else:
+        print("expansiones", len(expanded_nodes))
+    return "No Encontrado"
 
 def busquedaLimitadaPorProfundidad(matriz, estado_inicial, limite_expansiones=2):
     print("Ejecutando búsqueda limitada por profundidad")
@@ -158,13 +200,15 @@ def on_click(event):
         if maze[row][column] == 0:
             maze[row][column] = 2
             update_cell(row, column, 'yellow')  # Color de queso
-            place_cheese = False
+            place_cheese += 1
             update_controls()
     
     print_matrix()
 
 def update_controls():
-    if mouse_position and wall_count > 1:
+    global place_cheese
+    print("place_cheese", place_cheese)
+    if mouse_position and place_cheese > 1:
         start_button.config(state='normal')
     else:
         start_button.config(state='disabled')
@@ -192,7 +236,7 @@ def update_cell(row, column, color, image=None):
         maze_canvas.image = image_tk
 
 ##Lista de funciones de búsqueda disponibles
-busquedas = [busquedaPorAmplitud, busquedaEnProfundidad]
+busquedas = [busquedaPorAmplitud ,busquedaPorCostoUniforme]
 busquedas_realizadas = []
 
 def iniciar_busqueda():
@@ -242,7 +286,7 @@ def pintar_nodos_y_aristas(padre, hijos):
     # Dibujar hijos y sus aristas
     espacio_horiz = 200
     if len(hijos) > 1:
-        espacio_horiz = 200 // len(hijos)
+        espacio_horiz = max(200 // len(hijos), 200)  # Ajustar el espacio mínimo entre nodos
 
     start_x = x1 - ((len(hijos) - 1) * espacio_horiz // 2)
 
@@ -265,12 +309,12 @@ def initialize_maze_canvas(rows=None, columns=None):
     global maze, mouse_position, wall_count, place_mouse, place_cheese
 
     if rows and columns:
-        maze = [[0 for _ in range(columns)] for _ in range(rows)]
+        maze = np.zeros((rows, columns))
     
     mouse_position = None
     wall_count = 0
-    place_mouse = False
     place_cheese = False
+    
 
     maze_canvas.config(width=cell_size*len(maze[0]), height=cell_size*len(maze))
     maze_canvas.delete("all")

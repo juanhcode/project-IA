@@ -7,3 +7,7 @@ class Nodo:
 
     def __repr__(self):
         return f"(estado={self.estado}, Padre={self.padre}, Operador={self.operador}, valor={self.valor})"
+
+    # Para comparar nodos    
+    def __lt__(self, other):
+        return self.valor < other.valor
