@@ -28,6 +28,7 @@ def set_estado(value):
     estado = value
 
 def busquedaPorAmplitud(matriz, estado_inicial, limite_expansiones=2):
+    print("Ejecutando búsqueda por amplitud")
     print("estado inicial", estado_inicial)
     cola = deque()
     cola.append(Nodo(estado_inicial, None, None, matriz[estado_inicial[0]][estado_inicial[1]]))
@@ -142,6 +143,8 @@ def busquedaPorCostoUniforme(matriz, estado_inicial, limite_expansiones=2):
             "izquierda": (0, -1),
         }.items():
             nuevo_fila, nuevo_columna = fila + df, columna + dc
+            # print("nuevo_fila", nuevo_fila)
+            # print("nuevo_columna", nuevo_columna)
             if 0 <= nuevo_fila < len(matriz) and 0 <= nuevo_columna < len(matriz[0]):
                 if matriz[nuevo_fila][nuevo_columna] != 1:
                     nuevo_nodo = Nodo((nuevo_fila, nuevo_columna), node, movimiento, matriz[nuevo_fila][nuevo_columna])
@@ -163,15 +166,67 @@ def busquedaPorCostoUniforme(matriz, estado_inicial, limite_expansiones=2):
 
 def busquedaLimitadaPorProfundidad(matriz, estado_inicial, limite_expansiones=2):
     print("Ejecutando búsqueda limitada por profundidad")
+    
     pass
 
+#Hoyos
 def busquedaProfundidadIterativa(matriz, estado_inicial, limite_expansiones=2):
     print("Ejecutando búsqueda en profundidad iterativa")
     pass
 
 def busquedaAvara(matriz, estado_inicial, limite_expansiones=2):
     print("Ejecutando búsqueda avara")
-    pass
+    #Obtener la meta de la matriz
+    for i in range(len(matriz)):
+        for j in range(len(matriz[i])):
+            if matriz[i][j] == 2:  # Suponiendo que el valor 2 representa la meta
+                meta = (i,j)
+    
+    stack = []
+    heapq.heappush(stack, (0, Nodo(estado_inicial, None, None, matriz[estado_inicial[0]][estado_inicial[1]])))
+
+    while stack and len(expanded_nodes) < limite_expansiones:
+        heuristic, node = heapq.heappop(stack)
+        print("Padre", node)
+        fila, columna = node.estado
+        expanded_nodes.append(node)
+
+        if node.valor == 2:
+            print("Encontrado")
+            break
+
+        # Expandir
+        hijos = []
+
+        for movimiento, (df, dc) in {
+            "arriba": (-1, 0),
+            "derecha": (0, 1),
+            "abajo": (1, 0),
+            "izquierda": (0, -1),
+        }.items():
+            nuevo_fila, nuevo_columna = fila + df, columna + dc
+            if 0 <= nuevo_fila < len(matriz) and 0 <= nuevo_columna < len(matriz[0]):
+                if matriz[nuevo_fila][nuevo_columna] != 1:
+                    nuevo_nodo = Nodo((nuevo_fila, nuevo_columna), node, movimiento, matriz[nuevo_fila][nuevo_columna])
+                    print("nuevo nodo", nuevo_nodo)
+                    heuristic = abs(nuevo_fila - meta[0]) + abs(nuevo_columna - meta[1])
+                    print("heuristica", heuristic)
+                    heapq.heappush(stack, (heuristic, nuevo_nodo))
+                    hijos.append(nuevo_nodo)
+        
+        pintar_nodos_y_aristas(node, hijos)
+        root.update()
+        time.sleep(1)  # Esperar 1 segundo antes de continuar
+
+    if len(expanded_nodes) >= limite_expansiones:
+        print("Límite de expansiones alcanzado")
+        print("expansiones", len(expanded_nodes))
+        expanded_nodes.clear()
+    else:
+        print("expansiones", len(expanded_nodes))
+    return "No Encontrado"
+
+
 
 def on_click(event):
     global place_mouse, place_wall, place_cheese, mouse_position, wall_count
@@ -236,7 +291,7 @@ def update_cell(row, column, color, image=None):
         maze_canvas.image = image_tk
 
 ##Lista de funciones de búsqueda disponibles
-busquedas = [busquedaPorAmplitud ,busquedaPorCostoUniforme]
+busquedas = [busquedaPorAmplitud, busquedaPorCostoUniforme ,busquedaAvara]
 busquedas_realizadas = []
 
 def iniciar_busqueda():
