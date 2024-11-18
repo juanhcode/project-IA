@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import simpledialog, messagebox
 from PIL import Image, ImageTk
 from collections import deque
 from Node import Nodo
@@ -42,6 +43,7 @@ def busquedaPorAmplitud(matriz, estado_inicial, limite_expansiones=2):
 
         if node.valor == 2:
             print("Encontrado")
+            mostrar_modal_queso_encontrado()
             break
 
         # Expandir
@@ -68,10 +70,9 @@ def busquedaPorAmplitud(matriz, estado_inicial, limite_expansiones=2):
     if len(expanded_nodes) >= limite_expansiones:
         print("Límite de expansiones alcanzado")
         print("expansiones", len(expanded_nodes))
+        mostrar_modal_no_encontrado()
         expanded_nodes.clear()
-    else:
-        print("expansiones", len(expanded_nodes))
-    return "No Encontrado"
+
 
 
 def busquedaEnProfundidad(matriz, estado_inicial, limite_expansiones=2):
@@ -87,6 +88,7 @@ def busquedaEnProfundidad(matriz, estado_inicial, limite_expansiones=2):
 
         if node.valor == 2:
             print("Encontrado")
+            mostrar_modal_queso_encontrado()
             break
 
         # Expandir
@@ -112,9 +114,11 @@ def busquedaEnProfundidad(matriz, estado_inicial, limite_expansiones=2):
     if len(expanded_nodes) >= limite_expansiones:
         print("Límite de expansiones alcanzado")
         print("expansiones", len(expanded_nodes))
+        mostrar_modal_no_encontrado()
         expanded_nodes.clear()
     else:
         print("expansiones", len(expanded_nodes))
+        mostrar_modal_no_encontrado()
     return "No Encontrado"
 
 #Busqueda por costo uniforme
@@ -132,6 +136,7 @@ def busquedaPorCostoUniforme(matriz, estado_inicial, limite_expansiones=2):
 
         if node.valor == 2:
             print("Encontrado")
+            mostrar_modal_queso_encontrado()
             break
 
         # Expandir
@@ -156,18 +161,64 @@ def busquedaPorCostoUniforme(matriz, estado_inicial, limite_expansiones=2):
         root.update()
         time.sleep(1)  # Esperar 1 segundo antes de continuar
 
-    if len(expanded_nodes) >= limite_expansiones:
+    if len(expanded_nodes) > limite_expansiones:
         print("Límite de expansiones alcanzado")
         print("expansiones", len(expanded_nodes))
+        mostrar_modal_no_encontrado()
         expanded_nodes.clear()
     else:
         print("expansiones", len(expanded_nodes))
+        mostrar_modal_no_encontrado()
     return "No Encontrado"
 
 def busquedaLimitadaPorProfundidad(matriz, estado_inicial, limite_expansiones=2):
     print("Ejecutando búsqueda limitada por profundidad")
+    profundidad = obtener_profundidad()
+    stack = []
+    stack.append(Nodo(estado_inicial, None, None, matriz[estado_inicial[0]][estado_inicial[1]]))
+
+    while stack and len(expanded_nodes) < limite_expansiones:
+        node = stack.pop()
+        print("Padre", node)
+        fila, columna = node.estado
+        expanded_nodes.append(node)
+
+        if node.valor == 2:
+            print("Encontrado")
+            mostrar_modal_queso_encontrado()
+            root.destroy()
+            break
+
+        print(Nodo.profundidad(node), "--profundidad del nodo--")
+
+        if Nodo.profundidad(node) < profundidad:
+            # Expandir
+            hijos = []
+            for movimiento, (df, dc) in {
+                "arriba": (-1, 0),
+                "derecha": (0, 1),
+                "abajo": (1, 0),
+                "izquierda": (0, -1),
+            }.items():
+                nuevo_fila, nuevo_columna = fila + df, columna + dc
+                if 0 <= nuevo_fila < len(matriz) and 0 <= nuevo_columna < len(matriz[0]):
+                    if matriz[nuevo_fila][nuevo_columna] != 1:
+                        nuevo_nodo = Nodo((nuevo_fila, nuevo_columna), node, movimiento, matriz[nuevo_fila][nuevo_columna])
+                        print("nuevo nodo", nuevo_nodo)
+                        stack.append(nuevo_nodo)
+                        hijos.append(nuevo_nodo)
+        
+        
+        pintar_nodos_y_aristas(node, hijos)
+        root.update()
+        time.sleep(1)  # Esperar 1 segundo antes de continuar
     
-    pass
+    if len(expanded_nodes) > limite_expansiones:
+        print("Límite de expansiones alcanzado")
+        print("expansiones", len(expanded_nodes))
+        mostrar_modal_no_encontrado()
+        expanded_nodes.clear()
+    
 
 #Hoyos
 def busquedaProfundidadIterativa(matriz, estado_inicial, limite_expansiones=2):
@@ -193,6 +244,7 @@ def busquedaAvara(matriz, estado_inicial, limite_expansiones=2):
 
         if node.valor == 2:
             print("Encontrado")
+            mostrar_modal_queso_encontrado()
             break
 
         # Expandir
@@ -221,9 +273,11 @@ def busquedaAvara(matriz, estado_inicial, limite_expansiones=2):
     if len(expanded_nodes) >= limite_expansiones:
         print("Límite de expansiones alcanzado")
         print("expansiones", len(expanded_nodes))
+        mostrar_modal_no_encontrado()
         expanded_nodes.clear()
     else:
         print("expansiones", len(expanded_nodes))
+        mostrar_modal_no_encontrado()
     return "No Encontrado"
 
 
@@ -291,7 +345,7 @@ def update_cell(row, column, color, image=None):
         maze_canvas.image = image_tk
 
 ##Lista de funciones de búsqueda disponibles
-busquedas = [busquedaPorAmplitud, busquedaPorCostoUniforme ,busquedaAvara]
+busquedas = [busquedaPorAmplitud, busquedaLimitadaPorProfundidad]
 busquedas_realizadas = []
 
 def iniciar_busqueda():
@@ -299,6 +353,7 @@ def iniciar_busqueda():
 
     if len(busquedas_realizadas) == len(busquedas):
         print("Todas las búsquedas han sido realizadas")
+        mostrar_modal_limite_alcanzado()
         return
 
     limite_expansiones = int(expansions_entry.get())
@@ -306,16 +361,12 @@ def iniciar_busqueda():
         # Seleccionar una búsqueda al azar que no haya sido realizada
         busqueda = random.choice([b for b in busquedas if b not in busquedas_realizadas])
         busquedas_realizadas.append(busqueda)
+        # Actualizar la etiqueta con el nombre del algoritmo de búsqueda
+        algoritmo_label.config(text=f"Algoritmo de búsqueda: {busqueda.__name__}")
         busqueda(maze, mouse_position, limite_expansiones)
+
     else:
         print("No se ha colocado el ratón")
-
-# def iniciar_busqueda():
-#     limite_expansiones = int(expansions_entry.get())
-#     if mouse_position:
-#         busquedaEnProfundidad(maze, mouse_position, limite_expansiones)
-#     else:
-#         print("No se ha colocado el ratón")
 
 def pintar_nodos_y_aristas(padre, hijos):
     global level, mouse_position
@@ -359,6 +410,33 @@ def pintar_nodos_y_aristas(padre, hijos):
 
     root.update()
     time.sleep(1)  # Pausa de 1 segundo entre cada movimiento
+
+# Función para mostrar el modal y obtener la profundidad
+def obtener_profundidad():
+    root = tk.Tk()
+    root.withdraw()  # Ocultar la ventana principal
+    profundidad = simpledialog.askinteger("Profundidad", "Ingrese la profundidad:")
+    root.destroy()
+    return profundidad
+
+# Función para mostrar el modal
+def mostrar_modal_queso_encontrado():
+    root = tk.Tk()
+    root.withdraw()  # Ocultar la ventana principal
+    messagebox.showinfo("Información", "Queso encontrado")
+    root.destroy()
+
+def mostrar_modal_limite_alcanzado():
+    root = tk.Tk()
+    root.withdraw()  # Ocultar la ventana principal
+    messagebox.showinfo("Información", "El queso no pudo ser encontrado. Límite de expansiones alcanzado")
+    root.destroy()
+
+def mostrar_modal_no_encontrado():
+    root = tk.Tk()
+    root.withdraw()  # Ocultar la ventana principal
+    messagebox.showinfo("Información", "El queso no pudo ser encontrado, cambio de busqueda")
+    root.destroy()
 
 def initialize_maze_canvas(rows=None, columns=None):
     global maze, mouse_position, wall_count, place_mouse, place_cheese
@@ -433,6 +511,10 @@ maze_canvas.grid(row=1, column=1, padx=10, pady=10)
 # Frame y canvas para el árbol de búsqueda con scroll
 search_frame = tk.Frame(root)
 search_frame.grid(row=1, column=0, padx=10, pady=10)
+
+# Crear una etiqueta para mostrar el algoritmo de búsqueda
+algoritmo_label = tk.Label(root, text="Algoritmo de búsqueda: Ninguno")
+algoritmo_label.grid(row=2, column=0, padx=10, pady=10)
 
 search_canvas = tk.Canvas(search_frame, width=650, height=650, bg='white')
 search_canvas.grid(row=0, column=0)

@@ -11,3 +11,10 @@ class Nodo:
     # Para comparar nodos    
     def __lt__(self, other):
         return self.valor < other.valor
+    
+    #Saber profundidad del nodo
+    def profundidad(self):
+        if self.padre == None:
+            return 0
+        else:
+            return 1 + self.padre.profundidad()
