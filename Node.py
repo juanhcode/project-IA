@@ -18,3 +18,4 @@ class Nodo:
             return 0
         else:
             return 1 + self.padre.profundidad()
+
